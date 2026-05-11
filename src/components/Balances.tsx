@@ -11,11 +11,20 @@ export default function Balances({ group }: { group: Group }) {
   const averagePerPerson = group.members.length > 0 ? tripTotal / group.members.length : 0;
   
   const paidByMember: Record<string, number> = {};
-  group.members.forEach(m => paidByMember[m.id] = 0);
+  const shareByMember: Record<string, number> = {};
+  group.members.forEach(m => {
+    paidByMember[m.id] = 0;
+    shareByMember[m.id] = 0;
+  });
   validExpenses.forEach(exp => {
     if (paidByMember[exp.paidBy] !== undefined) {
       paidByMember[exp.paidBy] += exp.amount;
     }
+    Object.entries(exp.splits).forEach(([memberId, splitAmt]) => {
+      if (shareByMember[memberId] !== undefined) {
+        shareByMember[memberId] += splitAmt;
+      }
+    });
   });
   
   // Calculate who owes whom
@@ -69,14 +78,37 @@ export default function Balances({ group }: { group: Group }) {
             </div>
           </div>
           
-          <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Paid by Members</h4>
-          <div className="flex-col" style={{ gap: '0.5rem' }}>
-            {group.members.map(m => (
-              <div key={m.id} className="flex-between list-item" style={{ padding: '0.5rem 0', borderBottom: 'none' }}>
-                <span>{m.name}</span>
-                <span className="tabular-nums" style={{ fontWeight: 'bold' }}>{formatCurrency(paidByMember[m.id] || 0)}</span>
-              </div>
-            ))}
+          <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Individual Shares</h4>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Member</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Paid</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Share</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.members.map(m => {
+                  const paid = paidByMember[m.id] || 0;
+                  const share = shareByMember[m.id] || 0;
+                  const net = paid - share;
+                  return (
+                    <tr key={m.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{m.name}</td>
+                      <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{formatCurrency(paid)}</td>
+                      <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem' }}>{formatCurrency(share)}</td>
+                      <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>
+                        <span className={net > 0.01 ? 'badge-glow-success' : net < -0.01 ? 'badge-glow-danger' : 'text-muted'}>
+                          {net > 0 ? '+' : ''}{formatCurrency(net)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
         <div className="card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
@@ -103,14 +135,37 @@ export default function Balances({ group }: { group: Group }) {
           </div>
         </div>
         
-        <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Paid by Members</h4>
-        <div className="flex-col" style={{ gap: '0.5rem' }}>
-          {group.members.map(m => (
-            <div key={m.id} className="flex-between list-item" style={{ padding: '0.5rem 0', borderBottom: 'none' }}>
-              <span>{m.name}</span>
-              <span className="tabular-nums" style={{ fontWeight: 'bold' }}>{formatCurrency(paidByMember[m.id] || 0)}</span>
-            </div>
-          ))}
+        <h4 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Individual Shares</h4>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <th style={{ textAlign: 'left', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Member</th>
+                <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Paid</th>
+                <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Share</th>
+                <th style={{ textAlign: 'right', padding: '0.5rem 0.5rem', fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {group.members.map(m => {
+                const paid = paidByMember[m.id] || 0;
+                const share = shareByMember[m.id] || 0;
+                const net = paid - share;
+                return (
+                  <tr key={m.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '0.75rem 0.5rem', fontWeight: 500 }}>{m.name}</td>
+                    <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{formatCurrency(paid)}</td>
+                    <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem' }}>{formatCurrency(share)}</td>
+                    <td className="tabular-nums" style={{ textAlign: 'right', padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>
+                      <span className={net > 0.01 ? 'badge-glow-success' : net < -0.01 ? 'badge-glow-danger' : 'text-muted'}>
+                        {net > 0 ? '+' : ''}{formatCurrency(net)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
